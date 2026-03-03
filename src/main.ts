@@ -7,6 +7,7 @@ const GITHUB_API = "https://api.github.com";
 let players: string[] = [];
 let games: Game[] = [];
 let eloHistory: EloHistory = {};
+let winStreaks: Record<string, number> = {};
 let chart: any = null;
 
 // --- Auth ---
@@ -56,7 +57,7 @@ async function fetchData() {
   ]);
   players = await playersRes.json();
   games = await gamesRes.json();
-  eloHistory = computeEloHistory(games);
+  ({ history: eloHistory, winStreaks } = computeEloHistory(games));
 }
 
 function getDataBaseUrl(): string {
@@ -72,10 +73,14 @@ function renderLeaderboard() {
 
   const tbody = document.querySelector("#leaderboard tbody")!;
   tbody.innerHTML = sorted
-    .map(
-      ([name, elo], i) =>
-        `<tr><td>${i + 1}</td><td>${escapeHtml(name)}</td><td>${Math.round(elo)}</td></tr>`
-    )
+    .map(([name, elo], i) => {
+      const streak = winStreaks[name] ?? 0;
+      const onStreak = streak >= 2;
+      const nameHtml = onStreak
+        ? `<strong style="color:red">${escapeHtml(name)} 🔥${streak}</strong>`
+        : escapeHtml(name);
+      return `<tr><td>${i + 1}</td><td>${nameHtml}</td><td>${Math.round(elo)}</td></tr>`;
+    })
     .join("");
 
   // Also show players with no games
@@ -260,7 +265,7 @@ async function handleAddGame() {
     await githubDispatch("add_game", game as unknown as Record<string, unknown>);
     // Optimistic update
     games.push(game);
-    eloHistory = computeEloHistory(games);
+    ({ history: eloHistory, winStreaks } = computeEloHistory(games));
     (document.getElementById("score-a") as HTMLInputElement).value = "";
     (document.getElementById("score-b") as HTMLInputElement).value = "";
     renderAll();
