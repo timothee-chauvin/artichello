@@ -154,10 +154,15 @@ function renderGameHistory() {
 function renderPlayerSelectors() {
   for (const id of ["players-a", "players-b"]) {
     const container = document.getElementById(id)!;
+    const checked = new Set(
+      Array.from(container.querySelectorAll("input:checked")).map(
+        (el) => (el as HTMLInputElement).value
+      )
+    );
     container.innerHTML = players
       .map(
         (p) =>
-          `<label><input type="checkbox" value="${escapeHtml(p)}"> ${escapeHtml(p)}</label>`
+          `<label><input type="checkbox" value="${escapeHtml(p)}"${checked.has(p) ? " checked" : ""}> ${escapeHtml(p)}</label>`
       )
       .join("");
   }
@@ -232,10 +237,6 @@ async function handleAddGame() {
     // Optimistic update
     games.push(game);
     eloHistory = computeEloHistory(games);
-    // Uncheck all
-    document.querySelectorAll("#players-a input, #players-b input").forEach((el) => {
-      (el as HTMLInputElement).checked = false;
-    });
     (document.getElementById("score-a") as HTMLInputElement).value = "";
     (document.getElementById("score-b") as HTMLInputElement).value = "";
     renderAll();
