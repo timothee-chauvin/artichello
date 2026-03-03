@@ -49,7 +49,13 @@ Each user needs a Personal Access Token to add players/games from the site:
 7. Paste it into the site's login screen — it's saved in the browser's localStorage
 
 ### Elo system
-The Elo calculation is currently a **dummy placeholder** — each player's rating changes by a random amount (seeded by game timestamp for determinism) after each game they participate in. The real Elo algorithm should be implemented in `src/elo.ts` by replacing the `computeEloHistory` function.
+Players start at **1000 Elo**. After each game, ratings update based on expected vs actual goals scored (K=32, logistic curve with scale factor 1/400):
+
+1. Compute each team's average Elo
+2. For each team, calculate expected goals: `E = totalGoals × 1/(1 + 10^((eloThem - eloUs)/400))`
+3. Each player's Elo changes by `K × (actualGoals - expectedGoals) / teamSize`
+
+This means a team scores Elo points when they score more goals than expected given the rating gap, and the update is split evenly among teammates.
 
 ## Project structure
 ```
@@ -66,9 +72,3 @@ data/
   games.json         — game log (committed by Actions)
 build.ts             — build script (Bun bundler + file copy)
 ```
-
-## Contributing
-
-1. The Elo system in `src/elo.ts` needs a real implementation — `computeEloHistory` takes the game list and returns per-player Elo history
-2. The UI could use improvements (better mobile layout, player avatars, etc.)
-3. Run `bun run build` to test your changes locally before pushing
