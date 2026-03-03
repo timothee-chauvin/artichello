@@ -1,0 +1,143 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+  background: #fafafa;
+  color: #222;
+}
+
+h1 { font-size: 1.8rem; }
+h2 { font-size: 1.3rem; margin: 1.5rem 0 0.5rem; }
+h3 { font-size: 1rem; margin-bottom: 0.3rem; }
+
+/* Auth */
+.auth-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+}
+.auth-box {
+  text-align: center;
+  max-width: 400px;
+}
+.auth-box p { margin: 1rem 0; color: #555; }
+.auth-box input {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+.auth-box button {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 1rem;
+}
+
+/* Header */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #ddd;
+}
+.header-actions { display: flex; gap: 0.5rem; }
+
+/* Buttons */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+.btn-primary { background: #4477AA; color: white; }
+.btn-primary:hover { background: #335f8a; }
+.btn-secondary { background: #e0e0e0; color: #333; }
+.btn-secondary:hover { background: #ccc; }
+
+/* Status */
+.status { min-height: 1.5rem; padding: 0.3rem 0; font-size: 0.9rem; }
+.status.error { color: #c33; }
+.status.success { color: #228833; }
+
+/* Leaderboard */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+th { font-weight: 600; background: #f0f0f0; }
+
+/* Chart */
+#chart-section canvas { max-height: 350px; }
+
+/* Game form */
+.game-form {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+.team-select { flex: 1; }
+.vs {
+  align-self: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  padding-top: 1.5rem;
+}
+.player-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.5rem;
+  max-height: 150px;
+  overflow-y: auto;
+}
+.player-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+input[type="number"] {
+  width: 80px;
+  padding: 0.4rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Add player */
+.add-player-form {
+  display: flex;
+  gap: 0.5rem;
+}
+.add-player-form input {
+  flex: 1;
+  padding: 0.4rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Game history */
+.game-entry {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+.game-date { color: #888; white-space: nowrap; }

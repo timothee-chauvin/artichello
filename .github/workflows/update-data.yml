@@ -1,0 +1,40 @@
+name: Update Data
+
+on:
+  repository_dispatch:
+    types: [add_player, add_game]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add player
+        if: github.event.action == 'add_player'
+        env:
+          PLAYER_NAME: ${{ github.event.client_payload.name }}
+        run: |
+          jq --arg name "$PLAYER_NAME" '. + [$name] | unique' data/players.json > tmp.json && mv tmp.json data/players.json
+
+      - name: Add game
+        if: github.event.action == 'add_game'
+        env:
+          PAYLOAD: ${{ toJson(github.event.client_payload) }}
+        run: |
+          jq --argjson game "$PAYLOAD" '. + [$game]' data/games.json > tmp.json && mv tmp.json data/games.json
+          echo "$PAYLOAD" | jq -r '.players_a[], .players_b[]' | while read -r player; do
+            jq --arg name "$player" 'if index($name) then . else . + [$name] end' data/players.json > tmp.json && mv tmp.json data/players.json
+          done
+
+      - name: Commit and push
+        run: |
+          git config user.name "artichello-bot"
+          git config user.email "artichello-bot@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Update data: ${{ github.event.action }}"
+          git push
