@@ -103,7 +103,7 @@ function renderChart() {
     borderColor: colors[i % colors.length],
     backgroundColor: colors[i % colors.length],
     fill: false,
-    tension: 0.2,
+    tension: 0,
     pointRadius: 3,
   }));
 

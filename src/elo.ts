@@ -35,12 +35,8 @@ export function computeEloHistory(games: Game[]): EloHistory {
     for (const player of allPlayers) {
       if (!(player in currentElo)) {
         currentElo[player] = INITIAL_ELO;
-        history[player] = [{ gameIndex: i, elo: INITIAL_ELO }];
+        history[player] = [];
       }
-    }
-
-    // Dummy: each participant gets a random delta seeded by timestamp
-    for (const player of allPlayers) {
       const delta = seededRandom(game.timestamp, player);
       currentElo[player] = currentElo[player]! + delta;
       history[player]!.push({ gameIndex: i, elo: currentElo[player]! });
