@@ -1,4 +1,4 @@
-import { computeEloHistory, getCurrentElo, type Game, type EloHistory } from "./elo.ts";
+import { computeEloHistory, computeExpectedScore, getCurrentElo, INITIAL_ELO, type Game, type EloHistory } from "./elo.ts";
 
 const REPO = "timothee-chauvin/artichello";
 const GITHUB_API = "https://api.github.com";
@@ -168,11 +168,35 @@ function renderPlayerSelectors() {
   }
 }
 
+function updateExpectedScore() {
+  const el = document.getElementById("expected-score")!;
+  const getSelected = (id: string) =>
+    Array.from(document.querySelectorAll(`#${id} input:checked`)).map(
+      (cb) => (cb as HTMLInputElement).value
+    );
+  const playersA = getSelected("players-a");
+  const playersB = getSelected("players-b");
+
+  if (playersA.length === 0 || playersB.length === 0) {
+    el.textContent = "";
+    return;
+  }
+
+  const currentElo = getCurrentElo(eloHistory);
+  const avgElo = (ps: string[]) =>
+    ps.reduce((s, p) => s + (currentElo[p] ?? INITIAL_ELO), 0) / ps.length;
+
+  const [scoreA, scoreB] = computeExpectedScore(avgElo(playersA), avgElo(playersB));
+  const fmt = (n: number) => (Number.isInteger(n) ? n.toString() : n.toFixed(1));
+  el.textContent = `${fmt(scoreA)} - ${fmt(scoreB)}`;
+}
+
 function renderAll() {
   renderLeaderboard();
   renderChart();
   renderGameHistory();
   renderPlayerSelectors();
+  updateExpectedScore();
 }
 
 // --- Actions ---
@@ -279,6 +303,8 @@ async function init() {
     }
   });
 
+  document.getElementById("players-a")!.addEventListener("change", updateExpectedScore);
+  document.getElementById("players-b")!.addEventListener("change", updateExpectedScore);
   document.getElementById("btn-add-player")!.addEventListener("click", handleAddPlayer);
   document.getElementById("btn-add-game")!.addEventListener("click", handleAddGame);
   document.getElementById("btn-logout")!.addEventListener("click", handleLogout);

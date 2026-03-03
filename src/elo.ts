@@ -10,7 +10,7 @@ export interface EloHistory {
   [player: string]: { gameIndex: number; elo: number }[];
 }
 
-const INITIAL_ELO = 1000;
+export const INITIAL_ELO = 1000;
 const K = 32;
 const ALPHA = 1 / 400;
 
@@ -58,6 +58,13 @@ export function computeEloHistory(games: Game[]): EloHistory {
   }
 
   return history;
+}
+
+export function computeExpectedScore(eloA: number, eloB: number): [number, number] {
+  const pA = 1 / (1 + Math.pow(10, ALPHA * (eloB - eloA)));
+  const pB = 1 - pA;
+  const scale = 10 / Math.max(pA, pB);
+  return [pA * scale, pB * scale];
 }
 
 export function getCurrentElo(history: EloHistory): Record<string, number> {
