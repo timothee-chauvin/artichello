@@ -7,22 +7,21 @@ export interface Game {
 }
 
 export interface EloHistory {
-  // player name → array of {gameIndex, elo} entries
   [player: string]: { gameIndex: number; elo: number }[];
 }
 
-// Simple seeded PRNG based on game timestamp for deterministic results
-function seededRandom(seed: string, playerName: string): number {
-  let hash = 0;
-  const str = seed + playerName;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return ((hash & 0x7fffffff) % 61) - 30; // range [-30, 30]
+const INITIAL_ELO = 1000;
+const K = 32;
+const ALPHA = 1 / 400;
+
+function teamAvgElo(players: string[], currentElo: Record<string, number>): number {
+  return players.reduce((sum, p) => sum + currentElo[p]!, 0) / players.length;
 }
 
-const INITIAL_ELO = 1000;
+function expectedGoals(eloUs: number, eloThem: number, totalGoals: number): number {
+  const pGoal = 1 / (1 + Math.pow(10, ALPHA * (eloThem - eloUs)));
+  return pGoal * totalGoals;
+}
 
 export function computeEloHistory(games: Game[]): EloHistory {
   const currentElo: Record<string, number> = {};
@@ -37,7 +36,22 @@ export function computeEloHistory(games: Game[]): EloHistory {
         currentElo[player] = INITIAL_ELO;
         history[player] = [];
       }
-      const delta = seededRandom(game.timestamp, player);
+    }
+
+    const avgA = teamAvgElo(game.players_a, currentElo);
+    const avgB = teamAvgElo(game.players_b, currentElo);
+    const totalGoals = game.score_a + game.score_b;
+
+    for (const player of game.players_a) {
+      const expected = expectedGoals(avgA, avgB, totalGoals);
+      const delta = K * (game.score_a - expected) / game.players_a.length;
+      currentElo[player] = currentElo[player]! + delta;
+      history[player]!.push({ gameIndex: i, elo: currentElo[player]! });
+    }
+
+    for (const player of game.players_b) {
+      const expected = expectedGoals(avgB, avgA, totalGoals);
+      const delta = K * (game.score_b - expected) / game.players_b.length;
       currentElo[player] = currentElo[player]! + delta;
       history[player]!.push({ gameIndex: i, elo: currentElo[player]! });
     }
