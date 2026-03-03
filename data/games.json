@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "players_a": [
+      "Gautier"
+    ],
+    "players_b": [
+      "Kyrian"
+    ],
+    "score_a": 10,
+    "score_b": 9,
+    "timestamp": "2026-03-03T14:07:56.655Z"
+  }
+]
