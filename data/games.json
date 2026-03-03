@@ -36,5 +36,19 @@
     "score_a": 10,
     "score_b": 7,
     "timestamp": "2026-03-03T14:20:30.433Z"
+  },
+  {
+    "players_a": [
+      "Enoal",
+      "Timothée",
+      "Virgile"
+    ],
+    "players_b": [
+      "Gautier",
+      "Kyrian"
+    ],
+    "score_a": 8,
+    "score_b": 10,
+    "timestamp": "2026-03-03T14:24:15.047Z"
   }
 ]
