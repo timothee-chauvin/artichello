@@ -36,8 +36,17 @@ bunx serve dist
 
 ### GitHub setup
 1. Enable GitHub Pages in repo settings → Source: "GitHub Actions"
-2. Each contributor creates a GitHub PAT (Settings → Developer settings → Personal access tokens → Fine-grained tokens) with **Contents: Read and write** permission on this repo
-3. Enter the PAT on the site's login screen — it's saved in the browser
+2. Push to `main` — the deploy workflow runs automatically
+
+### Creating a GitHub PAT
+Each user needs a Personal Access Token to add players/games from the site:
+1. Go to **GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**
+2. **Token name**: anything (e.g. "artichello")
+3. **Expiration**: your choice (or no expiration)
+4. **Repository access**: "Only select repositories" → select `artichello`
+5. **Permissions**: under Repository permissions, set **Contents** to **Read and write**
+6. Generate and copy the token
+7. Paste it into the site's login screen — it's saved in the browser's localStorage
 
 ### Elo system
 The Elo calculation is currently a **dummy placeholder** — each player's rating changes by a random amount (seeded by game timestamp for determinism) after each game they participate in. The real Elo algorithm should be implemented in `src/elo.ts` by replacing the `computeEloHistory` function.
