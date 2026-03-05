@@ -68,7 +68,7 @@ function getDataBaseUrl(): string {
 
 // --- Rendering ---
 function renderLeaderboard() {
-  const currentElo = getCurrentElo(eloHistory);
+  const { currentElo } = computeEloHistory(games);
   const sorted = Object.entries(currentElo).sort(([, a], [, b]) => b - a);
 
   const tbody = document.querySelector("#leaderboard tbody")!;
@@ -160,13 +160,18 @@ function renderGameHistory() {
       const teamB = g.players_b.map(escapeHtml).join(", ");
 
       return `<div class="game-entry">
-        <span class="game-date">${date}</span>
-        <span class="game-teams">
-          <span class="${isALoser ? 'game-loser' : ''}">${teamA}</span>
-          <strong class="game-score-display">${g.score_a} - ${g.score_b}</strong>
-          <span class="${isBLoser ? 'game-loser' : ''}">${teamB}</span>
-        </span>
-      </div>`;
+  <span class="game-date">${date}</span>
+  
+  <span class="team-a ${isALoser ? 'game-loser' : ''}">
+    ${teamA}
+  </span>
+
+  <strong>${g.score_a} - ${g.score_b}</strong>
+
+  <span class="team-b ${isBLoser ? 'game-loser' : ''}">
+    ${teamB}
+  </span>
+</div>`;
     })
     .join("");
 }
