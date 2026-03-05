@@ -188,8 +188,10 @@ function renderChart() {
               const teamA = g.players_a.join(", ");
               const teamB = g.players_b.join(", ");
               const exp = gameExpected[gameIndex];
-              const expA = exp ? fmt(exp.expA) : "?";
-              const expB = exp ? fmt(exp.expB) : "?";
+              const maxGoals = Math.max(g.score_a, g.score_b);
+              const scale = maxGoals / 10;
+              const expA = exp ? fmt(exp.expA * scale) : "?";
+              const expB = exp ? fmt(exp.expB * scale) : "?";
               return [
                 teamA,
                 `(${expA}) ${g.score_a} - ${g.score_b} (${expB})`,
