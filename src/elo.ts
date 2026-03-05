@@ -16,6 +16,7 @@ const K_STREAK = 64;        // K multiplied by 2 when on a win streak (≥2 cons
 const K_LOSS_STREAK = 16;   // K halved when on a loss streak (≥2 consecutive losses) — hidden protection
 const STREAK_THRESHOLD = 2; // consecutive wins required to trigger win-streak boost
 const LOSS_STREAK_THRESHOLD = 2; // consecutive losses required to trigger loss-streak penalty
+const TOP1_DECAY = 5; // Elo points lost per inactive weekday by the top-1 player
 const ALPHA = 1 / 400;
 
 function teamAvgElo(players: string[], currentElo: Record<string, number>): number {
@@ -124,7 +125,65 @@ export function computeEloHistory(games: Game[]): EloResult {
     }
   }
 
+  // --- Daily decay for top-1 ---
+  applyTop1Decay(games, currentElo, history);
+
   return { history, winStreaks };
+}
+
+/**
+ * For every weekday (Mon–Fri) between the first and last game where the
+ * current top-1 player at end-of-day did NOT play, subtract TOP1_DECAY points.
+ * Mutations are appended to `history` so the graph reflects the drops.
+ */
+function applyTop1Decay(
+  games: Game[],
+  currentElo: Record<string, number>,
+  history: EloHistory,
+): void {
+  if (games.length === 0) return;
+
+  // Build a map: dateStr ("YYYY-MM-DD") -> set of players who played that day
+  const playedOnDay = new Map<string, Set<string>>();
+  for (const game of games) {
+    const day = game.timestamp.slice(0, 10); // "YYYY-MM-DD"
+    if (!playedOnDay.has(day)) playedOnDay.set(day, new Set());
+    for (const p of [...game.players_a, ...game.players_b]) {
+      playedOnDay.get(day)!.add(p);
+    }
+  }
+
+  // Iterate over every calendar day from first to last game (exclusive of today)
+  const firstDay = new Date(games[0]!.timestamp);
+  const lastGame = new Date(games[games.length - 1]!.timestamp);
+
+  // Normalise to midnight UTC
+  firstDay.setUTCHours(0, 0, 0, 0);
+  lastGame.setUTCHours(0, 0, 0, 0);
+
+  // We use a synthetic gameIndex counter starting just after the last real game
+  let syntheticIndex = Object.values(history).reduce(
+    (max, entries) => Math.max(max, entries.length > 0 ? entries[entries.length - 1]!.gameIndex : 0),
+    0,
+  ) + 1;
+
+  for (const cursor = new Date(firstDay); cursor <= lastGame; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    const dow = cursor.getUTCDay(); // 0 = Sun, 6 = Sat
+    if (dow === 0 || dow === 6) continue; // skip weekends
+
+    const dateStr = cursor.toISOString().slice(0, 10);
+    const playersToday = playedOnDay.get(dateStr) ?? new Set<string>();
+
+    // Find the top-1 player at this point in time
+    const top1 = Object.entries(currentElo).sort(([, a], [, b]) => b - a)[0];
+    if (!top1) continue;
+    const [top1Player] = top1;
+
+    if (!playersToday.has(top1Player)) {
+      currentElo[top1Player] = (currentElo[top1Player] ?? 0) - TOP1_DECAY;
+      history[top1Player]!.push({ gameIndex: syntheticIndex++, elo: currentElo[top1Player] });
+    }
+  }
 }
 
 export function computeExpectedScore(eloA: number, eloB: number): [number, number] {
