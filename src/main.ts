@@ -312,8 +312,7 @@ function updateExpectedScore() {
   }
 
   const [scoreA, scoreB] = computeExpectedScore(avgElo(playersA), avgElo(playersB));
-  const fmt = (n: number) => (Number.isInteger(n) ? n.toString() : n.toFixed(1));
-  el.textContent = `${fmt(scoreA)} - ${fmt(scoreB)}`;
+  el.textContent = `${Math.ceil(scoreA)} - ${Math.ceil(scoreB)}`;
 }
 
 function balanceTeams() {

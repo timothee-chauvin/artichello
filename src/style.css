@@ -167,69 +167,105 @@ th {
 
 .team-select {
   flex: 1;
+  min-width: 0;
+  /* évite le débordement flex */
+}
+
+.team-select h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+/* Score input aligné à droite sous les checkboxes */
+.score-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.4rem;
+}
+
+.score-row input[type="number"] {
+  width: 72px;
+  padding: 0.35rem 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  background: #fafafa;
+  transition: border-color 0.15s;
+}
+
+.score-row input[type="number"]:focus {
+  outline: none;
+  border-color: #4477AA;
+  background: #fff;
 }
 
 .vs {
   align-self: flex-start;
+  flex-shrink: 0;
+  /* largeur fixe : ne vole pas d'espace aux team-select */
+  width: 90px;
   font-weight: bold;
   font-size: 1.2rem;
-  padding-top: 4.5rem;
+  padding-top: 4.3rem;
   /* aligne visuellement avec les checkboxes */
   text-align: center;
 }
 
 #expected-score {
-  font-size: 0.85rem;
-  color: #666;
-  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  color: #888;
+  margin-top: 0.25rem;
   white-space: nowrap;
-  min-height: 1.2em;
-  /* réserve la hauteur pour éviter le layout shift */
+  min-height: 1.3em;
+  /* réserve la hauteur — évite le layout shift */
+  letter-spacing: 0.02em;
 }
 
 .player-checkboxes {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  margin-bottom: 0.5rem;
+  gap: 0.15rem;
   height: 150px;
-  /* Force la boîte à garder sa taille */
   min-height: 150px;
   overflow-y: auto;
-  border: 1px solid #ccc;
-  padding: 0.5rem;
-  border-radius: 4px;
-  background: white;
-  /* Pour bien voir la zone */
+  border: 1.5px solid #e0e0e0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .player-checkboxes label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   cursor: pointer;
-  padding: 2px 0;
+  padding: 3px 2px;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+
+.player-checkboxes label:hover {
+  background: #f4f4f8;
 }
 
 .player-elo {
   margin-left: auto;
-  font-size: 0.75rem;
-  color: #999;
+  font-size: 0.72rem;
+  color: #aaa;
+  font-variant-numeric: tabular-nums;
 }
 
 .team-elo {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-style: normal;
-  color: #888;
-  font-weight: normal;
-}
-
-input[type="number"] {
-  width: 80px;
-  padding: 0.4rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  color: #999;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Add player */
