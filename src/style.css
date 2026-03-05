@@ -170,10 +170,11 @@ th {
 }
 
 .vs {
-  align-self: center;
+  align-self: flex-start;
   font-weight: bold;
   font-size: 1.2rem;
-  padding-top: 1.5rem;
+  padding-top: 4.5rem;
+  /* aligne visuellement avec les checkboxes */
   text-align: center;
 }
 
@@ -182,6 +183,8 @@ th {
   color: #666;
   margin-top: 0.3rem;
   white-space: nowrap;
+  min-height: 1.2em;
+  /* réserve la hauteur pour éviter le layout shift */
 }
 
 .player-checkboxes {
