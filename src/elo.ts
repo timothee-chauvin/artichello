@@ -90,7 +90,9 @@ export function computeEloHistory(games: Game[]): EloResult {
       const expected = expectedGoals(avgA, avgB, totalGoals);
       const rawDelta = game.score_a - expected;
       const k = pickK(rawDelta, winStreaks[player]!, lossStreaks[player]!);
-      const delta = k * rawDelta / game.players_a.length;
+      let delta = k * rawDelta / game.players_a.length;
+      // Clamp delta
+      delta = Math.max(-64, Math.min(64, delta));
       // Add bounty share if team A won
       const bountyGain = wonA ? bountyForA / game.players_a.length : 0;
       currentElo[player] = currentElo[player]! + delta + bountyGain;
@@ -110,7 +112,9 @@ export function computeEloHistory(games: Game[]): EloResult {
       const expected = expectedGoals(avgB, avgA, totalGoals);
       const rawDelta = game.score_b - expected;
       const k = pickK(rawDelta, winStreaks[player]!, lossStreaks[player]!);
-      const delta = k * rawDelta / game.players_b.length;
+      let delta = k * rawDelta / game.players_b.length;
+      // Clamp delta
+      delta = Math.max(-64, Math.min(64, delta));
       // Add bounty share if team B won
       const bountyGain = wonB ? bountyForB / game.players_b.length : 0;
       currentElo[player] = currentElo[player]! + delta + bountyGain;
