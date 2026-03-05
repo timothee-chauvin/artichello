@@ -13,7 +13,7 @@ export interface EloHistory {
 export const INITIAL_ELO = 1000;
 const K_BASE = 32;
 const K_STREAK = 64;        // K multiplied by 2 when on a win streak (≥2 consecutive wins)
-const K_LOSS_STREAK = 48;   // K amplified when on a loss streak (≥2 consecutive losses) — hidden
+const K_LOSS_STREAK = 16;   // K halved when on a loss streak (≥2 consecutive losses) — hidden protection
 const STREAK_THRESHOLD = 2; // consecutive wins required to trigger win-streak boost
 const LOSS_STREAK_THRESHOLD = 2; // consecutive losses required to trigger loss-streak penalty
 const ALPHA = 1 / 400;
@@ -29,8 +29,8 @@ function expectedGoals(eloUs: number, eloThem: number, totalGoals: number): numb
 
 /** Selects the appropriate K factor for a player given their raw score delta and current streaks.
  *  - Gain (rawDelta > 0): use K_STREAK if on a win streak, otherwise K_BASE.
- *  - Loss (rawDelta < 0): use K_LOSS_STREAK if on a loss streak, otherwise K_BASE.
- *  The asymmetry ensures streaks never amplify the "wrong" direction.
+ *  - Loss (rawDelta < 0): use K_LOSS_STREAK (half of base) if on a loss streak, otherwise K_BASE.
+ *  Players on a loss streak lose fewer points — a hidden protection mechanism.
  */
 function pickK(rawDelta: number, winStreak: number, lossStreak: number): number {
   if (rawDelta > 0) {
