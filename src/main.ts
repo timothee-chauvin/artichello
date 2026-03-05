@@ -317,70 +317,72 @@ function updateExpectedScore() {
 }
 
 function balanceTeams() {
-  // 1. Récupérer tous les joueurs sélectionnés (dans A ou B)
-  const getSelected = (id: string) =>
-    Array.from(document.querySelectorAll(`#${id} input:checked`)).map(
-      (cb) => (cb as HTMLInputElement).value
-    );
-  const selected = [...new Set([...getSelected("players-a"), ...getSelected("players-b")])];
+  // 1. Récupérer tous les joueurs sélectionnés (dans A ou dans B, peu importe)
+  const allInputs = (id: string): HTMLInputElement[] =>
+    Array.from(document.querySelectorAll(`#${id} input[type="checkbox"]`)) as HTMLInputElement[];
 
-  if (selected.length < 2) return;
+  const checkedIn = (id: string) => allInputs(id).filter(el => el.checked).map(el => el.value);
+
+  const selected = [...new Set([...checkedIn("players-a"), ...checkedIn("players-b")])];
+
+  if (selected.length < 2) {
+    showStatus("Sélectionne au moins 2 joueurs pour équilibrer", true);
+    return;
+  }
 
   const currentElo = getCurrentElo(eloHistory);
   const elo = (p: string) => currentElo[p] ?? INITIAL_ELO;
 
   const n = selected.length;
-  const sizeA = Math.floor(n / 2);  // équipe A = la plus petite ou égale
+  const sizeA = Math.floor(n / 2); // équipe A = la plus petite (ou égale si pair)
 
   let bestDiff = Infinity;
-  let bestA: string[] = [];
-  let bestB: string[] = [];
+  let bestMask = 0;
 
-  // Brute-force tous les sous-ensembles de taille sizeA
+  // Brute-force optimal : essaie tous les sous-ensembles de taille sizeA
+  const popcount = (x: number) => { let c = 0; while (x) { c += x & 1; x >>>= 1; } return c; };
   for (let mask = 0; mask < (1 << n); mask++) {
-    if (mask.toString(2).split("").filter(c => c === "1").length !== sizeA) continue;
-    const teamA = selected.filter((_, i) => (mask >> i) & 1);
-    const teamB = selected.filter((_, i) => !((mask >> i) & 1));
-    const avgA = teamA.reduce((s, p) => s + elo(p), 0) / teamA.length;
-    const avgB = teamB.reduce((s, p) => s + elo(p), 0) / teamB.length;
-    const diff = Math.abs(avgA - avgB);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      bestA = teamA;
-      bestB = teamB;
+    if (popcount(mask) !== sizeA) continue;
+    let sumA = 0, sumB = 0;
+    for (let i = 0; i < n; i++) {
+      if ((mask >> i) & 1) sumA += elo(selected[i]!);
+      else sumB += elo(selected[i]!);
     }
+    const diff = Math.abs(sumA / sizeA - sumB / (n - sizeA));
+    if (diff < bestDiff) { bestDiff = diff; bestMask = mask; }
   }
 
-  // 2. Appliquer la meilleure partition aux checkboxes
-  // On rerender les selectors avec bestA dans A et bestB dans B
-  const containerA = document.getElementById("players-a")!;
-  const containerB = document.getElementById("players-b")!;
-  const setA = new Set(bestA);
-  const setB = new Set(bestB);
+  const bestA = new Set(selected.filter((_, i) => (bestMask >> i) & 1));
+  const bestB = new Set(selected.filter((_, i) => !((bestMask >> i) & 1)));
 
-  const currentEloAll = getCurrentElo(eloHistory);
-  const eloLabel = (p: string) => {
-    const e = currentEloAll[p] ?? INITIAL_ELO;
-    return `<span class="player-elo">${Math.round(e)}</span>`;
-  };
+  // 2. Décocher tout dans A et B, puis re-cocher selon la répartition optimale.
+  //    On passe par renderPlayerSelectors pour chaque étape afin que les listes
+  //    soient correctement filtrées (un joueur coché en A disparaît de B et vice-versa).
 
-  containerA.innerHTML = players
-    .filter((p) => !setB.has(p))
-    .map(
-      (p) =>
-        `<label><input type="checkbox" value="${escapeHtml(p)}"${setA.has(p) ? " checked" : ""}> ${escapeHtml(p)} ${eloLabel(p)}</label>`
-    )
-    .join("");
+  // Étape 1 : tout décocher
+  allInputs("players-a").forEach(el => { el.checked = false; });
+  allInputs("players-b").forEach(el => { el.checked = false; });
+  renderPlayerSelectors(); // resynchronise les deux listes (tous visibles, rien coché)
 
-  containerB.innerHTML = players
-    .filter((p) => !setA.has(p))
-    .map(
-      (p) =>
-        `<label><input type="checkbox" value="${escapeHtml(p)}"${setB.has(p) ? " checked" : ""}> ${escapeHtml(p)} ${eloLabel(p)}</label>`
-    )
-    .join("");
+  // Étape 2 : cocher l'équipe A
+  allInputs("players-a").forEach(el => {
+    if (bestA.has(el.value)) el.checked = true;
+  });
+  renderPlayerSelectors(); // les joueurs de A disparaissent de B
+
+  // Étape 3 : cocher l'équipe B
+  allInputs("players-b").forEach(el => {
+    if (bestB.has(el.value)) el.checked = true;
+  });
+  renderPlayerSelectors(); // final sync
 
   updateExpectedScore();
+
+  const avgA = [...bestA].reduce((s, p) => s + elo(p), 0) / bestA.size;
+  const avgB = [...bestB].reduce((s, p) => s + elo(p), 0) / bestB.size;
+  showStatus(
+    `Équipes équilibrées ⚖️ — Team A: ${Math.round(avgA)} Elo · Team B: ${Math.round(avgB)} Elo (écart: ${Math.round(Math.abs(avgA - avgB))})`
+  );
 }
 
 function renderAll() {
