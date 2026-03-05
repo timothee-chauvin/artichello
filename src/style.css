@@ -141,6 +141,23 @@ th {
 }
 
 /* Game form */
+.game-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.btn-balance {
+  background: #e8e0f8;
+  color: #5a3fa0;
+  border: 1px solid #cbb8f0;
+}
+
+.btn-balance:hover {
+  background: #d4c4f4;
+}
+
 .game-form {
   display: flex;
   align-items: flex-start;

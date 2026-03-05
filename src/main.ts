@@ -316,6 +316,73 @@ function updateExpectedScore() {
   el.textContent = `${fmt(scoreA)} - ${fmt(scoreB)}`;
 }
 
+function balanceTeams() {
+  // 1. Récupérer tous les joueurs sélectionnés (dans A ou B)
+  const getSelected = (id: string) =>
+    Array.from(document.querySelectorAll(`#${id} input:checked`)).map(
+      (cb) => (cb as HTMLInputElement).value
+    );
+  const selected = [...new Set([...getSelected("players-a"), ...getSelected("players-b")])];
+
+  if (selected.length < 2) return;
+
+  const currentElo = getCurrentElo(eloHistory);
+  const elo = (p: string) => currentElo[p] ?? INITIAL_ELO;
+
+  const n = selected.length;
+  const sizeA = Math.floor(n / 2);  // équipe A = la plus petite ou égale
+
+  let bestDiff = Infinity;
+  let bestA: string[] = [];
+  let bestB: string[] = [];
+
+  // Brute-force tous les sous-ensembles de taille sizeA
+  for (let mask = 0; mask < (1 << n); mask++) {
+    if (mask.toString(2).split("").filter(c => c === "1").length !== sizeA) continue;
+    const teamA = selected.filter((_, i) => (mask >> i) & 1);
+    const teamB = selected.filter((_, i) => !((mask >> i) & 1));
+    const avgA = teamA.reduce((s, p) => s + elo(p), 0) / teamA.length;
+    const avgB = teamB.reduce((s, p) => s + elo(p), 0) / teamB.length;
+    const diff = Math.abs(avgA - avgB);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestA = teamA;
+      bestB = teamB;
+    }
+  }
+
+  // 2. Appliquer la meilleure partition aux checkboxes
+  // On rerender les selectors avec bestA dans A et bestB dans B
+  const containerA = document.getElementById("players-a")!;
+  const containerB = document.getElementById("players-b")!;
+  const setA = new Set(bestA);
+  const setB = new Set(bestB);
+
+  const currentEloAll = getCurrentElo(eloHistory);
+  const eloLabel = (p: string) => {
+    const e = currentEloAll[p] ?? INITIAL_ELO;
+    return `<span class="player-elo">${Math.round(e)}</span>`;
+  };
+
+  containerA.innerHTML = players
+    .filter((p) => !setB.has(p))
+    .map(
+      (p) =>
+        `<label><input type="checkbox" value="${escapeHtml(p)}"${setA.has(p) ? " checked" : ""}> ${escapeHtml(p)} ${eloLabel(p)}</label>`
+    )
+    .join("");
+
+  containerB.innerHTML = players
+    .filter((p) => !setA.has(p))
+    .map(
+      (p) =>
+        `<label><input type="checkbox" value="${escapeHtml(p)}"${setB.has(p) ? " checked" : ""}> ${escapeHtml(p)} ${eloLabel(p)}</label>`
+    )
+    .join("");
+
+  updateExpectedScore();
+}
+
 function renderAll() {
   renderLeaderboard();
   renderChart();
@@ -453,6 +520,7 @@ async function init() {
   });
 
   document.getElementById("btn-add-player")!.addEventListener("click", handleAddPlayer);
+  document.getElementById("btn-balance")!.addEventListener("click", balanceTeams);
   document.getElementById("btn-add-game")!.addEventListener("click", handleAddGame);
   document.getElementById("btn-logout")!.addEventListener("click", handleLogout);
   document.getElementById("btn-refresh")!.addEventListener("click", loadAndRender);
