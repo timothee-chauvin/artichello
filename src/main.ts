@@ -180,33 +180,32 @@ function renderPlayerSelectors() {
   const containerA = document.getElementById("players-a")!;
   const containerB = document.getElementById("players-b")!;
 
-  // 1. On récupère les noms déjà cochés des deux côtés
-  const checkedA = new Set(
-    Array.from(containerA.querySelectorAll("input:checked")).map(
-      (el) => (el as HTMLInputElement).value
-    )
+  // 1. On récupère les valeurs COCHÉES (on utilise .value car c'est le nom du joueur)
+  const selectedA = Array.from(containerA.querySelectorAll("input:checked")).map(
+    (el) => (el as HTMLInputElement).value
   );
-  const checkedB = new Set(
-    Array.from(containerB.querySelectorAll("input:checked")).map(
-      (el) => (el as HTMLInputElement).value
-    )
+  const selectedB = Array.from(containerB.querySelectorAll("input:checked")).map(
+    (el) => (el as HTMLInputElement).value
   );
 
-  // 2. Rendu Team A : on filtre les joueurs sélectionnés en B
+  const setA = new Set(selectedA);
+  const setB = new Set(selectedB);
+
+  // 2. Rendu pour l'équipe A : on affiche tous les joueurs SAUF ceux cochés en B
   containerA.innerHTML = players
-    .filter(p => !checkedB.has(p))
+    .filter((p) => !setB.has(p))
     .map(
       (p) =>
-        `<label><input type="checkbox" value="${escapeHtml(p)}"${checkedA.has(p) ? " checked" : ""}> ${escapeHtml(p)}</label>`
+        `<label><input type="checkbox" value="${escapeHtml(p)}"${setA.has(p) ? " checked" : ""}> ${escapeHtml(p)}</label>`
     )
     .join("");
 
-  // 3. Rendu Team B : on filtre les joueurs sélectionnés en A
+  // 3. Rendu pour l'équipe B : on affiche tous les joueurs SAUF ceux cochés en A
   containerB.innerHTML = players
-    .filter(p => !checkedA.has(p))
+    .filter((p) => !setA.has(p))
     .map(
       (p) =>
-        `<label><input type="checkbox" value="${escapeHtml(p)}"${checkedB.has(p) ? " checked" : ""}> ${escapeHtml(p)}</label>`
+        `<label><input type="checkbox" value="${escapeHtml(p)}"${setB.has(p) ? " checked" : ""}> ${escapeHtml(p)}</label>`
     )
     .join("");
 }
@@ -361,12 +360,13 @@ async function init() {
 
   // Mise à jour : On appelle renderPlayerSelectors à chaque changement pour filtrer
   document.getElementById("players-a")!.addEventListener("change", () => {
-    updateExpectedScore();
-    renderPlayerSelectors();
+    renderPlayerSelectors(); // On filtre d'abord
+    updateExpectedScore();    // On calcule le score après
   });
+
   document.getElementById("players-b")!.addEventListener("change", () => {
-    updateExpectedScore();
-    renderPlayerSelectors();
+    renderPlayerSelectors(); // On filtre d'abord
+    updateExpectedScore();    // On calcule le score après
   });
 
   document.getElementById("btn-add-player")!.addEventListener("click", handleAddPlayer);
