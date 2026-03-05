@@ -177,20 +177,38 @@ function renderGameHistory() {
 }
 
 function renderPlayerSelectors() {
-  for (const id of ["players-a", "players-b"]) {
-    const container = document.getElementById(id)!;
-    const checked = new Set(
-      Array.from(container.querySelectorAll("input:checked")).map(
-        (el) => (el as HTMLInputElement).value
-      )
-    );
-    container.innerHTML = players
-      .map(
-        (p) =>
-          `<label><input type="checkbox" value="${escapeHtml(p)}"${checked.has(p) ? " checked" : ""}> ${escapeHtml(p)}</label>`
-      )
-      .join("");
-  }
+  const containerA = document.getElementById("players-a")!;
+  const containerB = document.getElementById("players-b")!;
+
+  // 1. On récupère les noms déjà cochés des deux côtés
+  const checkedA = new Set(
+    Array.from(containerA.querySelectorAll("input:checked")).map(
+      (el) => (el as HTMLInputElement).value
+    )
+  );
+  const checkedB = new Set(
+    Array.from(containerB.querySelectorAll("input:checked")).map(
+      (el) => (el as HTMLInputElement).value
+    )
+  );
+
+  // 2. Rendu Team A : on filtre les joueurs sélectionnés en B
+  containerA.innerHTML = players
+    .filter(p => !checkedB.has(p))
+    .map(
+      (p) =>
+        `<label><input type="checkbox" value="${escapeHtml(p)}"${checkedA.has(p) ? " checked" : ""}> ${escapeHtml(p)}</label>`
+    )
+    .join("");
+
+  // 3. Rendu Team B : on filtre les joueurs sélectionnés en A
+  containerB.innerHTML = players
+    .filter(p => !checkedA.has(p))
+    .map(
+      (p) =>
+        `<label><input type="checkbox" value="${escapeHtml(p)}"${checkedB.has(p) ? " checked" : ""}> ${escapeHtml(p)}</label>`
+    )
+    .join("");
 }
 
 function updateExpectedScore() {
@@ -313,6 +331,19 @@ function escapeHtml(s: string): string {
   return div.innerHTML;
 }
 
+async function loadAndRender() {
+  showStatus("Loading data...");
+  try {
+    await fetchData();
+    renderAll();
+    showStatus("");
+  } catch (e: any) {
+    showStatus(`Failed to load data: ${e.message}`, true);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", init);
+
 // --- Init ---
 async function init() {
   // Auth
@@ -328,8 +359,16 @@ async function init() {
     }
   });
 
-  document.getElementById("players-a")!.addEventListener("change", updateExpectedScore);
-  document.getElementById("players-b")!.addEventListener("change", updateExpectedScore);
+  // Mise à jour : On appelle renderPlayerSelectors à chaque changement pour filtrer
+  document.getElementById("players-a")!.addEventListener("change", () => {
+    updateExpectedScore();
+    renderPlayerSelectors();
+  });
+  document.getElementById("players-b")!.addEventListener("change", () => {
+    updateExpectedScore();
+    renderPlayerSelectors();
+  });
+
   document.getElementById("btn-add-player")!.addEventListener("click", handleAddPlayer);
   document.getElementById("btn-add-game")!.addEventListener("click", handleAddGame);
   document.getElementById("btn-logout")!.addEventListener("click", handleLogout);
@@ -342,16 +381,3 @@ async function init() {
     showAuth();
   }
 }
-
-async function loadAndRender() {
-  showStatus("Loading data...");
-  try {
-    await fetchData();
-    renderAll();
-    showStatus("");
-  } catch (e: any) {
-    showStatus(`Failed to load data: ${e.message}`, true);
-  }
-}
-
-document.addEventListener("DOMContentLoaded", init);
