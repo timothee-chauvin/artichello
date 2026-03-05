@@ -191,6 +191,19 @@ th {
   padding: 2px 0;
 }
 
+.player-elo {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.team-elo {
+  font-size: 0.85rem;
+  font-style: normal;
+  color: #888;
+  font-weight: normal;
+}
+
 input[type="number"] {
   width: 80px;
   padding: 0.4rem;

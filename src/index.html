@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
+
 <body>
   <!-- Auth Screen -->
   <div id="auth-screen" class="auth-screen">
@@ -35,7 +37,13 @@
     <section id="leaderboard-section">
       <h2>Leaderboard</h2>
       <table id="leaderboard">
-        <thead><tr><th>#</th><th>Player</th><th>Elo</th></tr></thead>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>Elo</th>
+          </tr>
+        </thead>
         <tbody></tbody>
       </table>
     </section>
@@ -44,7 +52,7 @@
       <h2>Add Game</h2>
       <div class="game-form">
         <div class="team-select">
-          <h3>Team A</h3>
+          <h3>Team A <em id="team-a-elo" class="team-elo"></em></h3>
           <div id="players-a" class="player-checkboxes"></div>
           <input type="number" id="score-a" min="0" max="10" placeholder="Score">
         </div>
@@ -53,7 +61,7 @@
           <div id="expected-score"></div>
         </div>
         <div class="team-select">
-          <h3>Team B</h3>
+          <h3>Team B <em id="team-b-elo" class="team-elo"></em></h3>
           <div id="players-b" class="player-checkboxes"></div>
           <input type="number" id="score-b" min="0" max="10" placeholder="Score">
         </div>
@@ -82,4 +90,5 @@
 
   <script src="main.js"></script>
 </body>
+
 </html>

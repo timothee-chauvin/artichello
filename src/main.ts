@@ -262,12 +262,18 @@ function renderPlayerSelectors() {
   const setA = new Set(selectedA);
   const setB = new Set(selectedB);
 
+  const currentElo = getCurrentElo(eloHistory);
+  const eloLabel = (p: string) => {
+    const e = currentElo[p] ?? INITIAL_ELO;
+    return `<span class="player-elo">${Math.round(e)}</span>`;
+  };
+
   // 2. Rendu pour l'équipe A : on affiche tous les joueurs SAUF ceux cochés en B
   containerA.innerHTML = players
     .filter((p) => !setB.has(p))
     .map(
       (p) =>
-        `<label><input type="checkbox" value="${escapeHtml(p)}"${setA.has(p) ? " checked" : ""}> ${escapeHtml(p)}</label>`
+        `<label><input type="checkbox" value="${escapeHtml(p)}"${setA.has(p) ? " checked" : ""}> ${escapeHtml(p)} ${eloLabel(p)}</label>`
     )
     .join("");
 
@@ -276,7 +282,7 @@ function renderPlayerSelectors() {
     .filter((p) => !setA.has(p))
     .map(
       (p) =>
-        `<label><input type="checkbox" value="${escapeHtml(p)}"${setB.has(p) ? " checked" : ""}> ${escapeHtml(p)}</label>`
+        `<label><input type="checkbox" value="${escapeHtml(p)}"${setB.has(p) ? " checked" : ""}> ${escapeHtml(p)} ${eloLabel(p)}</label>`
     )
     .join("");
 }
@@ -290,14 +296,20 @@ function updateExpectedScore() {
   const playersA = getSelected("players-a");
   const playersB = getSelected("players-b");
 
+  const currentElo = getCurrentElo(eloHistory);
+  const avgElo = (ps: string[]) =>
+    ps.reduce((s, p) => s + (currentElo[p] ?? INITIAL_ELO), 0) / ps.length;
+
+  // Mise à jour des titres Team A / Team B avec l'Elo moyen
+  const elTeamA = document.getElementById("team-a-elo")!;
+  const elTeamB = document.getElementById("team-b-elo")!;
+  elTeamA.textContent = playersA.length > 0 ? `${Math.round(avgElo(playersA))}` : "";
+  elTeamB.textContent = playersB.length > 0 ? `${Math.round(avgElo(playersB))}` : "";
+
   if (playersA.length === 0 || playersB.length === 0) {
     el.textContent = "";
     return;
   }
-
-  const currentElo = getCurrentElo(eloHistory);
-  const avgElo = (ps: string[]) =>
-    ps.reduce((s, p) => s + (currentElo[p] ?? INITIAL_ELO), 0) / ps.length;
 
   const [scoreA, scoreB] = computeExpectedScore(avgElo(playersA), avgElo(playersB));
   const fmt = (n: number) => (Number.isInteger(n) ? n.toString() : n.toFixed(1));
