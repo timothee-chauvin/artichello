@@ -185,9 +185,10 @@ th {
   margin-top: 0.4rem;
 }
 
-/* Team B : flush right, aligné avec Submit */
-.score-row-b {
-  justify-content: flex-end;
+/* Score B : flush right via son ID, sans ambiguïté */
+#score-b {
+  margin-left: auto;
+  display: block;
 }
 
 .score-row input[type="number"] {
