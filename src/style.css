@@ -178,11 +178,16 @@ th {
   margin-bottom: 0.4rem;
 }
 
-/* Score input aligné à droite sous les checkboxes */
+/* Score input aligné à gauche (Team A) et à droite (Team B) */
 .score-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-top: 0.4rem;
+}
+
+/* Team B : flush right, aligné avec Submit */
+.team-select:last-child .score-row {
+  justify-content: flex-end;
 }
 
 .score-row input[type="number"] {
