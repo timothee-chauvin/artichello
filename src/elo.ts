@@ -18,6 +18,7 @@ const STREAK_THRESHOLD = 2; // consecutive wins required to trigger win-streak b
 const LOSS_STREAK_THRESHOLD = 2; // consecutive losses required to trigger loss-streak penalty
 const TOP1_DECAY = 8; // Elo points lost per inactive weekday by the top-1 player
 const ALPHA = 1 / 400;
+const BOUNTY_BONUS = 16;
 
 function teamAvgElo(players: string[], currentElo: Record<string, number>): number {
   return players.reduce((sum, p) => sum + currentElo[p]!, 0) / players.length;
@@ -76,13 +77,13 @@ export function computeEloHistory(games: Game[]): EloResult {
     const wonA = game.score_a > game.score_b;
     const wonB = game.score_b > game.score_a;
 
-    // Bounty: sum of (streak × 10) for each opposing player currently on a kill streak
+    // Bounty: sum of (streak × BOUNTY_BONUS) for each opposing player currently on a kill streak
     const bountyForA = game.players_b.reduce(
-      (sum, p) => sum + (winStreaks[p]! >= STREAK_THRESHOLD ? winStreaks[p]! * 10 : 0),
+      (sum, p) => sum + (winStreaks[p]! >= STREAK_THRESHOLD ? winStreaks[p]! * BOUNTY_BONUS : 0),
       0,
     );
     const bountyForB = game.players_a.reduce(
-      (sum, p) => sum + (winStreaks[p]! >= STREAK_THRESHOLD ? winStreaks[p]! * 10 : 0),
+      (sum, p) => sum + (winStreaks[p]! >= STREAK_THRESHOLD ? winStreaks[p]! * BOUNTY_BONUS : 0),
       0,
     );
 
