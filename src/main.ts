@@ -145,12 +145,27 @@ function renderGameHistory() {
   container.innerHTML = [...games]
     .reverse()
     .map((g) => {
-      const date = new Date(g.timestamp).toLocaleString();
+      const date = new Date(g.timestamp).toLocaleString([], {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      // Déterminer qui a perdu
+      const isALoser = g.score_a < g.score_b;
+      const isBLoser = g.score_b < g.score_a;
+
       const teamA = g.players_a.map(escapeHtml).join(", ");
       const teamB = g.players_b.map(escapeHtml).join(", ");
+
       return `<div class="game-entry">
         <span class="game-date">${date}</span>
-        <span class="game-teams">${teamA} <strong>${g.score_a} - ${g.score_b}</strong> ${teamB}</span>
+        <span class="game-teams">
+          <span class="${isALoser ? 'game-loser' : ''}">${teamA}</span>
+          <strong class="game-score-display">${g.score_a} - ${g.score_b}</strong>
+          <span class="${isBLoser ? 'game-loser' : ''}">${teamB}</span>
+        </span>
       </div>`;
     })
     .join("");
