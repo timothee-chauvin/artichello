@@ -16,7 +16,7 @@ const K_STREAK = 64;        // K multiplied by 2 when on a win streak (≥2 cons
 const K_LOSS_STREAK = 16;   // K halved when on a loss streak (≥2 consecutive losses) — hidden protection
 const STREAK_THRESHOLD = 2; // consecutive wins required to trigger win-streak boost
 const LOSS_STREAK_THRESHOLD = 2; // consecutive losses required to trigger loss-streak penalty
-const TOP1_DECAY = 5; // Elo points lost per inactive weekday by the top-1 player
+const TOP1_DECAY = 8; // Elo points lost per inactive weekday by the top-1 player
 const ALPHA = 1 / 400;
 
 function teamAvgElo(players: string[], currentElo: Record<string, number>): number {
@@ -125,10 +125,78 @@ export function computeEloHistory(games: Game[]): EloResult {
     }
   }
 
+  // --- Weekly activity bonus (acidity bonus) ---
+  applyWeeklyActivityBonus(games, currentElo, history);
+
   // --- Daily decay for top-1 ---
   applyTop1Decay(games, currentElo, history);
 
   return { history, winStreaks };
+}
+
+const WEEKLY_BONUS_DAYS = 2;  // distinct days required to earn the bonus
+const WEEKLY_BONUS_AMOUNT = 16; // Elo points awarded
+
+/**
+ * For each ISO calendar week (Mon–Sun), award WEEKLY_BONUS_AMOUNT to every
+ * player who played on at least WEEKLY_BONUS_DAYS different days that week.
+ * The bonus is applied once per player per week and appended to history.
+ */
+function applyWeeklyActivityBonus(
+  games: Game[],
+  currentElo: Record<string, number>,
+  history: EloHistory,
+): void {
+  if (games.length === 0) return;
+
+  /** Returns "YYYY-Www" ISO week key for a given date. */
+  function isoWeekKey(date: Date): string {
+    // Copy to avoid mutation
+    const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    // ISO week: Thursday of the week determines the year
+    const day = d.getUTCDay() === 0 ? 7 : d.getUTCDay(); // 1=Mon … 7=Sun
+    d.setUTCDate(d.getUTCDate() + 4 - day); // set to Thursday
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+    return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+  }
+
+  // week -> player -> Set<dateStr>
+  const weekPlayerDays = new Map<string, Map<string, Set<string>>>();
+
+  for (const game of games) {
+    const date = new Date(game.timestamp);
+    const week = isoWeekKey(date);
+    const dateStr = game.timestamp.slice(0, 10);
+
+    if (!weekPlayerDays.has(week)) weekPlayerDays.set(week, new Map());
+    const playerDays = weekPlayerDays.get(week)!;
+
+    for (const p of [...game.players_a, ...game.players_b]) {
+      if (!playerDays.has(p)) playerDays.set(p, new Set());
+      playerDays.get(p)!.add(dateStr);
+    }
+  }
+
+  // Synthetic index starting after the last real game entry
+  let syntheticIndex = Object.values(history).reduce(
+    (max, entries) => Math.max(max, entries.length > 0 ? entries[entries.length - 1]!.gameIndex : 0),
+    0,
+  ) + 1;
+
+  // Apply bonuses in chronological week order
+  for (const week of [...weekPlayerDays.keys()].sort()) {
+    const playerDays = weekPlayerDays.get(week)!;
+    for (const [player, days] of playerDays) {
+      if (days.size >= WEEKLY_BONUS_DAYS) {
+        currentElo[player] = (currentElo[player] ?? 0) + WEEKLY_BONUS_AMOUNT;
+        if (history[player]) {
+          history[player].push({ gameIndex: syntheticIndex, elo: currentElo[player] });
+        }
+        syntheticIndex++;
+      }
+    }
+  }
 }
 
 /**
