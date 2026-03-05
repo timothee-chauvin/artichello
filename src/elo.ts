@@ -153,13 +153,14 @@ function applyTop1Decay(
     }
   }
 
-  // Iterate over every calendar day from first to last game (exclusive of today)
+  // Iterate over every weekday from first game up to yesterday (decay applies even with no recent games)
   const firstDay = new Date(games[0]!.timestamp);
-  const lastGame = new Date(games[games.length - 1]!.timestamp);
-
-  // Normalise to midnight UTC
   firstDay.setUTCHours(0, 0, 0, 0);
-  lastGame.setUTCHours(0, 0, 0, 0);
+
+  // "yesterday" midnight UTC — we don't decay the current in-progress day
+  const yesterday = new Date();
+  yesterday.setUTCHours(0, 0, 0, 0);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
   // We use a synthetic gameIndex counter starting just after the last real game
   let syntheticIndex = Object.values(history).reduce(
@@ -167,7 +168,7 @@ function applyTop1Decay(
     0,
   ) + 1;
 
-  for (const cursor = new Date(firstDay); cursor <= lastGame; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+  for (const cursor = new Date(firstDay); cursor <= yesterday; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
     const dow = cursor.getUTCDay(); // 0 = Sun, 6 = Sat
     if (dow === 0 || dow === 6) continue; // skip weekends
 
