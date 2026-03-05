@@ -190,10 +190,11 @@ function applyWeeklyActivityBonus(
     for (const [player, days] of playerDays) {
       if (days.size >= WEEKLY_BONUS_DAYS) {
         currentElo[player] = (currentElo[player] ?? 0) + WEEKLY_BONUS_AMOUNT;
-        if (history[player]) {
-          history[player].push({ gameIndex: syntheticIndex, elo: currentElo[player] });
-        }
-        syntheticIndex++;
+        // We don't add the bonus to history because it's not a real game
+        //if (history[player]) {
+        //  history[player].push({ gameIndex: syntheticIndex, elo: currentElo[player] });
+        //}
+        //syntheticIndex++;
       }
     }
   }
@@ -247,11 +248,11 @@ function applyTop1Decay(
     const top1 = Object.entries(currentElo).sort(([, a], [, b]) => b - a)[0];
     if (!top1) continue;
     const [top1Player] = top1;
-
-    if (!playersToday.has(top1Player)) {
-      currentElo[top1Player] = (currentElo[top1Player] ?? 0) - TOP1_DECAY;
-      history[top1Player]!.push({ gameIndex: syntheticIndex++, elo: currentElo[top1Player] });
-    }
+    // We don't add the decay to history because it's not a real game
+    //if (!playersToday.has(top1Player)) {
+    //  currentElo[top1Player] = (currentElo[top1Player] ?? 0) - TOP1_DECAY;
+    //  history[top1Player]!.push({ gameIndex: syntheticIndex++, elo: currentElo[top1Player] });
+    //}
   }
 }
 
