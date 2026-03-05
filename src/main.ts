@@ -71,6 +71,14 @@ function renderLeaderboard() {
   const { currentElo } = computeEloHistory(games);
   const sorted = Object.entries(currentElo).sort(([, a], [, b]) => b - a);
 
+  // Compute rank before the last game to show rank changes
+  const prevRankMap: Record<string, number> = {};
+  if (games.length >= 1) {
+    const { currentElo: prevElo } = computeEloHistory(games.slice(0, -1));
+    const prevSorted = Object.entries(prevElo).sort(([, a], [, b]) => b - a);
+    prevSorted.forEach(([name], idx) => { prevRankMap[name] = idx + 1; });
+  }
+
   const tbody = document.querySelector("#leaderboard tbody")!;
   tbody.innerHTML = sorted
     .map(([name, elo], i) => {
@@ -79,7 +87,19 @@ function renderLeaderboard() {
       const nameHtml = onStreak
         ? `<strong style="color:red">${escapeHtml(name)} 🔥${streak}</strong>`
         : escapeHtml(name);
-      return `<tr><td>${i + 1}</td><td>${nameHtml}</td><td>${Math.round(elo)}</td></tr>`;
+
+      const currentRank = i + 1;
+      const prevRank = prevRankMap[name];
+      let rankArrow = "";
+      if (prevRank !== undefined && prevRank !== currentRank) {
+        if (currentRank < prevRank) {
+          rankArrow = ` <span style="color:#22c55e;font-size:0.85em">▲</span>`;
+        } else {
+          rankArrow = ` <span style="color:#ef4444;font-size:0.85em">▼</span>`;
+        }
+      }
+
+      return `<tr><td>${currentRank}</td><td>${nameHtml}</td><td>${Math.round(elo)}${rankArrow}</td></tr>`;
     })
     .join("");
 
@@ -102,6 +122,33 @@ function renderChart() {
     "#66CCEE", "#AA3377", "#BBBBBB",
   ];
 
+  // Pre-compute expected scores per game for tooltip
+  // For each game i, expected score is based on elo *before* game i.
+  // We use eloHistory to get the elo after game i-1 (i.e., the entry with gameIndex === i-1).
+  const gameExpected: { expA: number; expB: number }[] = [];
+  {
+    // Build a helper: player -> sorted entries by gameIndex (already in order)
+    const getEloAtGame = (player: string, beforeGameIndex: number): number => {
+      const entries = eloHistory[player];
+      if (!entries || entries.length === 0) return INITIAL_ELO;
+      // Find the last entry strictly before beforeGameIndex
+      let elo = INITIAL_ELO;
+      for (const e of entries) {
+        if (e.gameIndex < beforeGameIndex) elo = e.elo;
+        else break;
+      }
+      return elo;
+    };
+
+    for (let gi = 0; gi < games.length; gi++) {
+      const g = games[gi]!;
+      const avgA = g.players_a.reduce((s, p) => s + getEloAtGame(p, gi), 0) / g.players_a.length;
+      const avgB = g.players_b.reduce((s, p) => s + getEloAtGame(p, gi), 0) / g.players_b.length;
+      const [expA, expB] = computeExpectedScore(avgA, avgB);
+      gameExpected.push({ expA, expB });
+    }
+  }
+
   const datasets = Object.entries(eloHistory).map(([player, entries], i) => ({
     label: player,
     data: entries.map((e) => ({ x: e.gameIndex, y: e.elo })),
@@ -113,6 +160,8 @@ function renderChart() {
   }));
 
   if (chart) chart.destroy();
+
+  const fmt = (n: number) => (Number.isInteger(n) ? n.toString() : n.toFixed(1));
 
   // @ts-ignore - Chart.js loaded via CDN
   chart = new Chart(ctx, {
@@ -130,6 +179,26 @@ function renderChart() {
       },
       plugins: {
         legend: { position: "top" as const },
+        tooltip: {
+          callbacks: {
+            title: (items: any[]) => {
+              const gameIndex = items[0]?.parsed?.x as number;
+              const g = games[gameIndex];
+              if (!g) return `Game #${gameIndex}`;
+              const teamA = g.players_a.join(", ");
+              const teamB = g.players_b.join(", ");
+              const exp = gameExpected[gameIndex];
+              const expA = exp ? fmt(exp.expA) : "?";
+              const expB = exp ? fmt(exp.expB) : "?";
+              return [
+                teamA,
+                `(${expA}) ${g.score_a} - ${g.score_b} (${expB})`,
+                teamB,
+              ];
+            },
+            label: (_item: any) => "",
+          },
+        },
       },
     },
   });
