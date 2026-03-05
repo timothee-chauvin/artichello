@@ -186,7 +186,7 @@ th {
 }
 
 /* Team B : flush right, aligné avec Submit */
-.team-select:last-child .score-row {
+.score-row-b {
   justify-content: flex-end;
 }
 
