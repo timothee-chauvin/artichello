@@ -45,6 +45,7 @@ export interface EloResult {
   history: EloHistory;
   /** Current consecutive win streak per player (0 = no streak). */
   winStreaks: Record<string, number>;
+  currentElo: Record<string, number>;
 }
 
 export function computeEloHistory(games: Game[]): EloResult {
@@ -131,7 +132,7 @@ export function computeEloHistory(games: Game[]): EloResult {
   // --- Daily decay for top-1 ---
   applyTop1Decay(games, currentElo, history);
 
-  return { history, winStreaks };
+  return { history, winStreaks, currentElo };
 }
 
 const WEEKLY_BONUS_DAYS = 2;  // distinct days required to earn the bonus
