@@ -255,10 +255,10 @@ function applyTop1Decay(
     if (!top1) continue;
     const [top1Player] = top1;
     // We don't add the decay to history because it's not a real game
-    //if (!playersToday.has(top1Player)) {
-    //  currentElo[top1Player] = (currentElo[top1Player] ?? 0) - TOP1_DECAY;
-    //  history[top1Player]!.push({ gameIndex: syntheticIndex++, elo: currentElo[top1Player] });
-    //}
+    if (!playersToday.has(top1Player)) {
+      currentElo[top1Player] = (currentElo[top1Player] ?? 0) - TOP1_DECAY;
+      // history[top1Player]!.push({ gameIndex: syntheticIndex++, elo: currentElo[top1Player]! });
+    }
   }
 }
 
