@@ -542,5 +542,18 @@
     "score_a": 6,
     "score_b": 10,
     "timestamp": "2026-03-17T12:38:21.110Z"
+  },
+  {
+    "players_a": [
+      "Kyrian",
+      "Morgane"
+    ],
+    "players_b": [
+      "Giulio",
+      "Virgile"
+    ],
+    "score_a": 5,
+    "score_b": 2,
+    "timestamp": "2026-03-17T12:43:24.009Z"
   }
 ]
