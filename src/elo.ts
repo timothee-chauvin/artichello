@@ -131,136 +131,120 @@ export function computeEloHistory(games: Game[]): EloResult {
     }
   }
 
-  // --- Weekly activity bonus (acidity bonus) ---
-  applyWeeklyActivityBonus(games, currentElo, history);
-
-  // --- Daily decay for top-1 ---
-  applyTop1Decay(games, currentElo, history);
+  // --- Chronological Weekly Activity Bonus and Daily Top-1 Decay ---
+  if (games.length > 0) {
+    applyChronologicalBonusesAndDecays(games, currentElo, history);
+  }
 
   return { history, winStreaks, currentElo };
 }
 
-const WEEKLY_BONUS_DAYS = 2;  // distinct days required to earn the bonus
-const WEEKLY_BONUS_AMOUNT = 16; // Elo points awarded
-
-/**
- * For each ISO calendar week (Mon–Sun), award WEEKLY_BONUS_AMOUNT to every
- * player who played on at least WEEKLY_BONUS_DAYS different days that week.
- * The bonus is applied once per player per week and appended to history.
- */
-function applyWeeklyActivityBonus(
+function applyChronologicalBonusesAndDecays(
   games: Game[],
   currentElo: Record<string, number>,
   history: EloHistory,
 ): void {
-  if (games.length === 0) return;
+  const baseElo: Record<string, number> = {};
+  const nonGameDeltas: Record<string, number> = {};
+  for (const p in currentElo) {
+    baseElo[p] = INITIAL_ELO;
+    nonGameDeltas[p] = 0;
+  }
 
-  /** Returns "YYYY-Www" ISO week key for a given date. */
+  const firstDay = new Date(games[0]!.timestamp);
+  firstDay.setUTCHours(0, 0, 0, 0);
+
+  const yesterday = new Date();
+  yesterday.setUTCHours(0, 0, 0, 0);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+
+  const lastGameDate = new Date(games[games.length - 1]!.timestamp);
+  lastGameDate.setUTCHours(0, 0, 0, 0);
+
+  const endDay = new Date(Math.max(yesterday.getTime(), lastGameDate.getTime()));
+
+  let gameIdx = 0;
+  let currentWeekKey = "";
+  const playedDaysInWeek = new Map<string, Set<string>>();
+
   function isoWeekKey(date: Date): string {
-    // Copy to avoid mutation
     const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-    // ISO week: Thursday of the week determines the year
-    const day = d.getUTCDay() === 0 ? 7 : d.getUTCDay(); // 1=Mon … 7=Sun
-    d.setUTCDate(d.getUTCDate() + 4 - day); // set to Thursday
+    const day = d.getUTCDay() === 0 ? 7 : d.getUTCDay();
+    d.setUTCDate(d.getUTCDate() + 4 - day);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
     return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
   }
 
-  // week -> player -> Set<dateStr>
-  const weekPlayerDays = new Map<string, Map<string, Set<string>>>();
+  for (let cursor = new Date(firstDay); cursor <= endDay; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    const dateStr = cursor.toISOString().slice(0, 10);
+    const playersToday = new Set<string>();
 
-  for (const game of games) {
-    const date = new Date(game.timestamp);
-    const week = isoWeekKey(date);
-    const dateStr = game.timestamp.slice(0, 10);
-
-    if (!weekPlayerDays.has(week)) weekPlayerDays.set(week, new Map());
-    const playerDays = weekPlayerDays.get(week)!;
-
-    for (const p of [...game.players_a, ...game.players_b]) {
-      if (!playerDays.has(p)) playerDays.set(p, new Set());
-      playerDays.get(p)!.add(dateStr);
+    // 1. Process all games on this day
+    while (gameIdx < games.length && games[gameIdx]!.timestamp.slice(0, 10) === dateStr) {
+      const game = games[gameIdx]!;
+      for (const p of [...game.players_a, ...game.players_b]) {
+        playersToday.add(p);
+        const entry = history[p]!.find((e) => e.gameIndex === gameIdx);
+        if (entry) {
+          baseElo[p] = entry.elo;
+        }
+      }
+      gameIdx++;
     }
-  }
 
-  // Synthetic index starting after the last real game entry
-  let syntheticIndex = Object.values(history).reduce(
-    (max, entries) => Math.max(max, entries.length > 0 ? entries[entries.length - 1]!.gameIndex : 0),
-    0,
-  ) + 1;
+    // 2. Weekly Activity Bonus
+    const weekKey = isoWeekKey(cursor);
+    if (currentWeekKey !== "" && currentWeekKey !== weekKey) {
+      for (const [p, days] of playedDaysInWeek) {
+        if (days.size >= WEEKLY_BONUS_DAYS) {
+          nonGameDeltas[p]! += WEEKLY_BONUS_AMOUNT;
+        }
+      }
+      playedDaysInWeek.clear();
+    }
+    currentWeekKey = weekKey;
 
-  // Apply bonuses in chronological week order
-  for (const week of [...weekPlayerDays.keys()].sort()) {
-    const playerDays = weekPlayerDays.get(week)!;
-    for (const [player, days] of playerDays) {
-      if (days.size >= WEEKLY_BONUS_DAYS) {
-        currentElo[player] = (currentElo[player] ?? 0) + WEEKLY_BONUS_AMOUNT;
-        // We don't add the bonus to history because it's not a real game
-        //if (history[player]) {
-        //  history[player].push({ gameIndex: syntheticIndex, elo: currentElo[player] });
-        //}
-        //syntheticIndex++;
+    for (const p of playersToday) {
+      if (!playedDaysInWeek.has(p)) playedDaysInWeek.set(p, new Set());
+      playedDaysInWeek.get(p)!.add(dateStr);
+    }
+
+    // 3. Top-1 Decay
+    if (cursor <= yesterday) {
+      const dow = cursor.getUTCDay();
+      if (dow !== 0 && dow !== 6) { // Mon-Fri only
+        const actualElos = Object.keys(baseElo)
+          .map((p) => ({ p, elo: baseElo[p]! + nonGameDeltas[p]! }))
+          .sort((a, b) => b.elo - a.elo);
+
+        if (actualElos.length > 0) {
+          const top1Player = actualElos[0]!.p;
+          if (!playersToday.has(top1Player)) {
+            nonGameDeltas[top1Player]! -= TOP1_DECAY;
+          }
+        }
       }
     }
   }
-}
 
-/**
- * For every weekday (Mon–Fri) between the first and last game where the
- * current top-1 player at end-of-day did NOT play, subtract TOP1_DECAY points.
- * Mutations are appended to `history` so the graph reflects the drops.
- */
-function applyTop1Decay(
-  games: Game[],
-  currentElo: Record<string, number>,
-  history: EloHistory,
-): void {
-  if (games.length === 0) return;
-
-  // Build a map: dateStr ("YYYY-MM-DD") -> set of players who played that day
-  const playedOnDay = new Map<string, Set<string>>();
-  for (const game of games) {
-    const day = game.timestamp.slice(0, 10); // "YYYY-MM-DD"
-    if (!playedOnDay.has(day)) playedOnDay.set(day, new Set());
-    for (const p of [...game.players_a, ...game.players_b]) {
-      playedOnDay.get(day)!.add(p);
+  // Apply final week bonus if the loop ended before the week changed
+  for (const [p, days] of playedDaysInWeek) {
+    if (days.size >= WEEKLY_BONUS_DAYS) {
+      nonGameDeltas[p]! += WEEKLY_BONUS_AMOUNT;
     }
   }
 
-  // Iterate over every weekday from first game up to yesterday (decay applies even with no recent games)
-  const firstDay = new Date(games[0]!.timestamp);
-  firstDay.setUTCHours(0, 0, 0, 0);
-
-  // "yesterday" midnight UTC — we don't decay the current in-progress day
-  const yesterday = new Date();
-  yesterday.setUTCHours(0, 0, 0, 0);
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-
-  // We use a synthetic gameIndex counter starting just after the last real game
-  let syntheticIndex = Object.values(history).reduce(
-    (max, entries) => Math.max(max, entries.length > 0 ? entries[entries.length - 1]!.gameIndex : 0),
-    0,
-  ) + 1;
-
-  for (const cursor = new Date(firstDay); cursor <= yesterday; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
-    const dow = cursor.getUTCDay(); // 0 = Sun, 6 = Sat
-    if (dow === 0 || dow === 6) continue; // skip weekends
-
-    const dateStr = cursor.toISOString().slice(0, 10);
-    const playersToday = playedOnDay.get(dateStr) ?? new Set<string>();
-
-    // Find the top-1 player at this point in time
-    const top1 = Object.entries(currentElo).sort(([, a], [, b]) => b - a)[0];
-    if (!top1) continue;
-    const [top1Player] = top1;
-    // We don't add the decay to history because it's not a real game
-    if (!playersToday.has(top1Player)) {
-      currentElo[top1Player] = (currentElo[top1Player] ?? 0) - TOP1_DECAY;
-      // history[top1Player]!.push({ gameIndex: syntheticIndex++, elo: currentElo[top1Player]! });
-    }
+  // Overwrite currentElo with actual computed Elo
+  for (const p in currentElo) {
+    currentElo[p] = baseElo[p]! + nonGameDeltas[p]!;
   }
 }
+
+const WEEKLY_BONUS_DAYS = 2;  // distinct days required to earn the bonus
+const WEEKLY_BONUS_AMOUNT = 16; // Elo points awarded
+
+
 
 export function computeExpectedScore(eloA: number, eloB: number): [number, number] {
   const pA = 1 / (1 + Math.pow(10, ALPHA * (eloB - eloA)));

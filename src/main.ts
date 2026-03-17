@@ -8,6 +8,7 @@ let players: string[] = [];
 let games: Game[] = [];
 let eloHistory: EloHistory = {};
 let winStreaks: Record<string, number> = {};
+let globalCurrentElo: Record<string, number> = {};
 let chart: any = null;
 
 // --- Auth ---
@@ -57,7 +58,7 @@ async function fetchData() {
   ]);
   players = await playersRes.json();
   games = await gamesRes.json();
-  ({ history: eloHistory, winStreaks } = computeEloHistory(games));
+  ({ history: eloHistory, winStreaks, currentElo: globalCurrentElo } = computeEloHistory(games));
 }
 
 function getDataBaseUrl(): string {
@@ -68,7 +69,7 @@ function getDataBaseUrl(): string {
 
 // --- Rendering ---
 function renderLeaderboard() {
-  const { currentElo } = computeEloHistory(games);
+  const currentElo = globalCurrentElo;
   const sorted = Object.entries(currentElo).sort(([, a], [, b]) => b - a);
 
   // Compute rank before the last game to show rank changes
@@ -262,7 +263,7 @@ function renderPlayerSelectors() {
   const setA = new Set(selectedA);
   const setB = new Set(selectedB);
 
-  const currentElo = getCurrentElo(eloHistory);
+  const currentElo = globalCurrentElo;
   const eloLabel = (p: string) => {
     const e = currentElo[p] ?? INITIAL_ELO;
     return `<span class="player-elo">${Math.round(e)}</span>`;
@@ -296,7 +297,7 @@ function updateExpectedScore() {
   const playersA = getSelected("players-a");
   const playersB = getSelected("players-b");
 
-  const currentElo = getCurrentElo(eloHistory);
+  const currentElo = globalCurrentElo;
   const avgElo = (ps: string[]) =>
     ps.reduce((s, p) => s + (currentElo[p] ?? INITIAL_ELO), 0) / ps.length;
 
@@ -329,7 +330,7 @@ function balanceTeams() {
     return;
   }
 
-  const currentElo = getCurrentElo(eloHistory);
+  const currentElo = globalCurrentElo;
   const elo = (p: string) => currentElo[p] ?? INITIAL_ELO;
 
   const n = selected.length;
@@ -453,7 +454,7 @@ async function handleAddGame() {
     await githubDispatch("add_game", game as unknown as Record<string, unknown>);
     // Optimistic update
     games.push(game);
-    ({ history: eloHistory, winStreaks } = computeEloHistory(games));
+    ({ history: eloHistory, winStreaks, currentElo: globalCurrentElo } = computeEloHistory(games));
     (document.getElementById("score-a") as HTMLInputElement).value = "";
     (document.getElementById("score-b") as HTMLInputElement).value = "";
     renderAll();
