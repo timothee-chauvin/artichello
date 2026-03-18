@@ -620,5 +620,18 @@
     "score_a": 10,
     "score_b": 9,
     "timestamp": "2026-03-18T12:05:25.300Z"
+  },
+  {
+    "players_a": [
+      "Gautier",
+      "Rossana"
+    ],
+    "players_b": [
+      "Giulio",
+      "Kyrian"
+    ],
+    "score_a": 9,
+    "score_b": 10,
+    "timestamp": "2026-03-18T12:05:49.316Z"
   }
 ]
